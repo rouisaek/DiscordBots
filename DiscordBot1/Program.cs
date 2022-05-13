@@ -26,7 +26,8 @@ namespace DiscordBot1
                 .AddSingleton(_commands)
                 .BuildServiceProvider();
 
-            string token = "OTczOTA5NDk5NjY2NjQwOTM2.Gh6VCM.E5Mx8QgRWfTWjx24Mi7VXQM8dCiLCp2YYr0-_0";
+            //https://discord.com/developers/applications/bot go and reset bot token and past it here in token variable
+            string token = "Token bot here";
 
             _client.Log += _client_Log;
 

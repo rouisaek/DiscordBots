@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -9,93 +10,82 @@ namespace DiscordBot1.Models
 {
     public class Commands : ModuleBase<SocketCommandContext>
     {
-        [Command("card")]
-        public async Task GetCard()
+        [Command("random")]
+        public async Task GetRandomCard()
         {
-            //https://storage.googleapis.com/ygoprodeck.com/pics_artgame/34541863.jpg
-            //string url = "https://db.ygoprodeck.com/api/v7/cardinfo.php?name=Tornado%20Dragon";
-
-            var urlRandomCard = "https://db.ygoprodeck.com/api/v7/randomcard.php";
-
-            await Task.Delay(1000);
+            var card = "https://db.ygoprodeck.com/api/v7/randomcard.php";
 
             using (HttpClient client = new HttpClient())
-            {                
-                using (HttpResponseMessage response = await client.GetAsync(urlRandomCard))
-                {                    
+            {
+                using (HttpResponseMessage response = await client.GetAsync(card))
+                {
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
 
                         var obj = JsonConvert.DeserializeObject<Card>(content);
 
+                        await Task.Delay(500);
+
                         var name = obj.name;
                         var id = obj.id;
                         var type = obj.type;
                         var desc = obj.desc;
-                        var level = obj.level;
-                        var race = obj.race;
+                        var level = "";                        
+                        var race = obj.race;                        
                         var atk = obj.atk;
                         var def = obj.def;
                         var att = obj.attribute;
-                        var artgame = $"https://storage.googleapis.com/ygoprodeck.com/pics_artgame/{id}.jpg";
+                        var artgame = $"https://storage.googleapis.com/ygoprodeck.com/pics/{id}.jpg";
 
-                        await ReplyAsync($@"Random YuGiOh! Card---------------------:
-Id: {id}.
-Name: {name}.
-Description: {desc}
-Level: {level}.
-ATK: {atk}.
-DEF: {def}.
-Attribute: {att}.
-Race: {race}.
-Type: {type}.");
-                        await ReplyAsync(artgame);
+                        // Check if the card type is Spell || Trap Card if so we don't assign (level, atk, def, att) variables to them.
+
+                        if (type.Contains("Spell") || type.Contains("Trap"))
+                        {
+                            await ReplyAsync($@"Random YuGiOh! Card---------------------:
+ID : {id} | Type : {type} | Race : {race}
+Name : {name}
+Description : {desc}
+{artgame}");
+                        }
+                        
+                        // Check if the card type is a Link monster if so we don't assign (level, def) variables to them cuz they don't have that.
+                        // Check YuGiOh! game...
+                        else if (type.Contains("Link"))
+                        {
+                            CommandsHelpers.LinkBeautify(obj, ref race, ref att);
+
+                            await ReplyAsync($@"Random YuGiOh! Card---------------------:
+ID : {id} | Type : {type} | Race : {race}
+Name : {name}
+Description : {desc}
+ATK : {atk}⚔
+Attribute : {att}
+{artgame}");
+                        }
+
+                        // Else if it is a Monster Card than can have all the variables we need to a Monster Card.
+                        else
+                        {
+                            CommandsHelpers.MonsterBeautify(obj, ref level, ref race, ref att);
+
+                            await ReplyAsync($@"Random YuGiOh! Card---------------------:
+ID : {id} | Type : {type} | Race : {race}
+Name : {name}
+Description : {desc}
+Level : {level}
+ATK : {atk}⚔
+DEF : {def}🛡
+Attribute : {att}
+{artgame}");
+                        }
                     }
                 }
             }
         }
-
-        [Command("ban")]
-        [RequireUserPermission(GuildPermission.BanMembers, ErrorMessage = "You don't have the permission ``ban_member``!")]
-        public async Task BanMember(IGuildUser user = null, [Remainder] string reason = null)
-        {
-            if (user == null)
-            {
-                await ReplyAsync("Please specify a user!");
-                return;
-            }
-            if (reason == null) reason = "Not specified";
-
-            await Context.Guild.AddBanAsync(user, 1, reason);
-
-            var EmbedBuilder = new EmbedBuilder()
-                .WithDescription($":white_check_mark: {user.Mention} was banned\n**Reason** {reason}")
-                .WithFooter(footer =>
-                {
-                    footer
-                    .WithText("User Ban Log")
-                    .WithIconUrl("https://i.imgur.com/6Bi17B3.png");
-                });
-            Embed embed = EmbedBuilder.Build();
-            await ReplyAsync(embed: embed);
-
-            ITextChannel logChannel = Context.Client.GetChannel(642698444431032330) as ITextChannel;
-            var EmbedBuilderLog = new EmbedBuilder()
-                .WithDescription($"{user.Mention} was banned\n**Reason** {reason}\n**Moderator** {Context.User.Mention}")
-                .WithFooter(footer =>
-                {
-                    footer
-                    .WithText("User Ban Log")
-                    .WithIconUrl("https://i.imgur.com/6Bi17B3.png");
-                });
-            Embed embedLog = EmbedBuilderLog.Build();
-            await logChannel.SendMessageAsync(embed: embedLog);
-
-        }
     }
 
-    
+
 
 }
 
